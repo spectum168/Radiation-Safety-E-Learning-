@@ -26,6 +26,34 @@ export default function App() {
     setScore(finalScore);
     setAnswers(finalAnswers);
     
+    // Save to local storage first for offline / static compatibility (e.g. GitHub Pages)
+    try {
+      const localDataStr = localStorage.getItem("safety_ray_scores");
+      let localScores = [];
+      if (localDataStr) {
+        try {
+          localScores = JSON.parse(localDataStr);
+        } catch (err) {}
+      }
+      
+      const newRec = {
+        id: `rec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: userName,
+        department: userDept,
+        score: finalScore,
+        totalQuestions: 6,
+        answers: finalAnswers,
+        completedAt: new Date().toISOString()
+      };
+      
+      if (Array.isArray(localScores)) {
+        localScores.push(newRec);
+        localStorage.setItem("safety_ray_scores", JSON.stringify(localScores));
+      }
+    } catch (err) {
+      console.error("Failed to persist score to localStorage", err);
+    }
+
     // Save to server database API
     try {
       await fetch("/api/scores", {

@@ -33,30 +33,184 @@ export default function DashboardScreen({ onBackToMain, currentUserRecord }: Das
   const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
   const [loading, setLoading] = useState(true);
 
-  // Sorting states
+// Sorting states
   const [sortField, setSortField] = useState<"name" | "score" | "completedAt">("completedAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
-  // Fetch all from Server APIs
+  const SEED_RECORDS: ScoreRecord[] = [
+    {
+      id: "seed-1",
+      name: "สมเกียรติ พรหมดี",
+      department: "แผนกแม่บ้าน",
+      score: 5,
+      totalQuestions: 6,
+      answers: [
+        { questionIndex: 0, selectedIndex: 0, isCorrect: true },
+        { questionIndex: 1, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 2, selectedIndex: 2, isCorrect: true },
+        { questionIndex: 3, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 4, selectedIndex: 0, isCorrect: false },
+        { questionIndex: 5, selectedIndex: 0, isCorrect: true }
+      ],
+      completedAt: "2026-06-08T08:30:00.000Z"
+    },
+    {
+      id: "seed-2",
+      name: "วิภาดา รักดี",
+      department: "แผนกบริการผู้ป่วย",
+      score: 6,
+      totalQuestions: 6,
+      answers: [
+        { questionIndex: 0, selectedIndex: 0, isCorrect: true },
+        { questionIndex: 1, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 2, selectedIndex: 2, isCorrect: true },
+        { questionIndex: 3, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 4, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 5, selectedIndex: 0, isCorrect: true }
+      ],
+      completedAt: "2026-06-08T09:15:00.000Z"
+    },
+    {
+      id: "seed-3",
+      name: "นรากร ยอดชาย",
+      department: "แผนกรักษาความปลอดภัย",
+      score: 4,
+      totalQuestions: 6,
+      answers: [
+        { questionIndex: 0, selectedIndex: 1, isCorrect: false },
+        { questionIndex: 1, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 2, selectedIndex: 2, isCorrect: true },
+        { questionIndex: 3, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 4, selectedIndex: 0, isCorrect: false },
+        { questionIndex: 5, selectedIndex: 0, isCorrect: true }
+      ],
+      completedAt: "2026-06-09T10:00:00.000Z"
+    },
+    {
+      id: "seed-4",
+      name: "สุชาดา แสนงาม",
+      department: "แผนกสนับสนุนทั่วไป",
+      score: 5,
+      totalQuestions: 6,
+      answers: [
+        { questionIndex: 0, selectedIndex: 0, isCorrect: true },
+        { questionIndex: 1, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 2, selectedIndex: 2, isCorrect: true },
+        { questionIndex: 3, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 4, selectedIndex: 0, isCorrect: false },
+        { questionIndex: 5, selectedIndex: 0, isCorrect: true }
+      ],
+      completedAt: "2026-06-09T14:45:00.000Z"
+    },
+    {
+      id: "seed-5",
+      name: "ปกรณ์ พิสุทธิ์",
+      department: "แผนกไอที",
+      score: 6,
+      totalQuestions: 6,
+      answers: [
+        { questionIndex: 0, selectedIndex: 0, isCorrect: true },
+        { questionIndex: 1, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 2, selectedIndex: 2, isCorrect: true },
+        { questionIndex: 3, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 4, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 5, selectedIndex: 0, isCorrect: true }
+      ],
+      completedAt: "2026-06-10T02:20:00.000Z"
+    },
+    {
+      id: "seed-6",
+      name: "สมหญิง เพียรงาน",
+      department: "แผนกแม่บ้าน",
+      score: 4,
+      totalQuestions: 6,
+      answers: [
+        { questionIndex: 0, selectedIndex: 0, isCorrect: true },
+        { questionIndex: 1, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 2, selectedIndex: 1, isCorrect: false },
+        { questionIndex: 3, selectedIndex: 1, isCorrect: true },
+        { questionIndex: 4, selectedIndex: 0, isCorrect: false },
+        { questionIndex: 5, selectedIndex: 0, isCorrect: true }
+      ],
+      completedAt: "2026-06-10T05:10:00.000Z"
+    }
+  ];
+
+  // Helper to calculate statistics locally
+  const computeLocalDeptStats = (recordsList: ScoreRecord[]): DeptStats[] => {
+    const depts: Record<string, { total: number; totalScore: number; passed: number }> = {};
+    
+    recordsList.forEach((rec) => {
+      const dept = rec.department;
+      if (!depts[dept]) {
+        depts[dept] = { total: 0, totalScore: 0, passed: 0 };
+      }
+      depts[dept].total += 1;
+      depts[dept].totalScore += rec.score;
+      
+      if (rec.score >= 4) {
+        depts[dept].passed += 1;
+      }
+    });
+
+    return Object.keys(depts).map(name => {
+      const item = depts[name];
+      return {
+        department: name,
+        count: item.total,
+        averageScore: Number((item.totalScore / item.total).toFixed(2)),
+        passRate: Number(((item.passed / item.total) * 100).toFixed(1)),
+        passed: item.passed,
+        failed: item.total - item.passed
+      };
+    });
+  };
+
+  // Fetch all from Server APIs with robust client fallback
   const fetchDashboardData = async () => {
     setLoading(true);
+    let loadedFromApi = false;
+
     try {
       const responseScores = await fetch("/api/scores");
       if (responseScores.ok) {
         const scoresData = await responseScores.json();
         setRecords(scoresData);
+        localStorage.setItem("safety_ray_scores", JSON.stringify(scoresData));
+        loadedFromApi = true;
       }
 
       const responseDepts = await fetch("/api/departments");
       if (responseDepts.ok) {
         const deptsData = await responseDepts.json();
-        setDeptStats(responseDepts.ok ? deptsData : []);
+        setDeptStats(deptsData);
       }
     } catch (e) {
-      console.error("Failed to load dashboard statistics", e);
-    } finally {
-      setLoading(false);
+      console.warn("Failed to load statistics from API, checking local storage", e);
     }
+
+    if (!loadedFromApi) {
+      // Load fallback from localStorage
+      const localDataStr = localStorage.getItem("safety_ray_scores");
+      let localScores: ScoreRecord[] = [];
+      try {
+        if (localDataStr) {
+          localScores = JSON.parse(localDataStr);
+        }
+      } catch (err) {
+        console.error("Local storage parse error", err);
+      }
+
+      if (!Array.isArray(localScores) || localScores.length === 0) {
+        localScores = [...SEED_RECORDS];
+        localStorage.setItem("safety_ray_scores", JSON.stringify(localScores));
+      }
+
+      setRecords(localScores);
+      setDeptStats(computeLocalDeptStats(localScores));
+    }
+
+    setLoading(false);
   };
 
   useEffect(() => {
