@@ -1,0 +1,6 @@
+{
+  "name": "Radiation Safety E-Learning",
+  "description": "ระบบเรียนรู้และประเมินความรู้ด้านความปลอดภัยจากรังสีสำหรับประชาชนทั่วไป พร้อมระบบแดชบอร์ดสรุปผลรายบุคคล รายแผนก และบันทึกข้อมูลคะแนน",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
