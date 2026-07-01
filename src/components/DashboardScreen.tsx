@@ -17,7 +17,8 @@ import {
   BookOpen,
   ArrowRight,
   TrendingUp,
-  Grid
+  Grid,
+  Trash2
 } from "lucide-react";
 
 interface DashboardScreenProps {
@@ -164,6 +165,27 @@ export default function DashboardScreen({ onBackToMain, currentUserRecord }: Das
         failed: item.total - item.passed
       };
     });
+  };
+
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const handleDeleteRecord = async (id: string) => {
+    const updatedRecords = records.filter(r => r.id !== id);
+    setRecords(updatedRecords);
+    setDeptStats(computeLocalDeptStats(updatedRecords));
+    localStorage.setItem("safety_ray_scores", JSON.stringify(updatedRecords));
+
+    try {
+      const response = await fetch(`/api/scores/${id}`, {
+        method: "DELETE"
+      });
+      if (!response.ok) {
+        console.warn("Server failed to delete record, kept in local state/storage");
+      }
+    } catch (err) {
+      console.error("Failed to delete score from server API", err);
+    }
+    setDeleteConfirmId(null);
   };
 
   // Fetch all from Server APIs with robust client fallback
@@ -663,13 +685,9 @@ export default function DashboardScreen({ onBackToMain, currentUserRecord }: Das
                           {sortField === "score" && (sortDirection === "asc" ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />)}
                         </div>
                       </th>
-                      <th className="py-3.5 px-4 w-36 text-center cursor-pointer hover:bg-slate-100" onClick={() => handleSort("completedAt")}>
-                        <div className="flex items-center justify-center gap-1">
-                          <span>เวลาอบรมสากล</span>
-                          {sortField === "completedAt" && (sortDirection === "asc" ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />)}
-                        </div>
-                      </th>
+                      <th className="py-3.5 px-4 w-24 text-center">เวลาอบรมสากล</th>
                       <th className="py-3.5 px-4 w-24 text-center">ผลลัพธ์สุทธิ</th>
+                      <th className="py-3.5 px-4 w-24 text-center">จัดการ</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -715,6 +733,32 @@ export default function DashboardScreen({ onBackToMain, currentUserRecord }: Das
                                 <XCircle className="w-3.5 h-3.5 text-rose-600" />
                                 <span>ทบทวน</span>
                               </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            {deleteConfirmId === rec.id ? (
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  onClick={() => handleDeleteRecord(rec.id)}
+                                  className="bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-extrabold px-2 py-1 rounded-lg cursor-pointer transition-all active:scale-95"
+                                >
+                                  ยืนยัน
+                                </button>
+                                <button
+                                  onClick={() => setDeleteConfirmId(null)}
+                                  className="bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-extrabold px-2 py-1 rounded-lg cursor-pointer transition-all"
+                                >
+                                  เลิก
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setDeleteConfirmId(rec.id)}
+                                className="text-slate-400 hover:text-rose-600 p-1.5 hover:bg-rose-50 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center"
+                                title="ลบประวัติพนักงาน"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             )}
                           </td>
                         </tr>

@@ -171,6 +171,22 @@ app.post("/api/scores", (req, res) => {
   res.status(201).json(newRecord);
 });
 
+// Delete a score record
+app.delete("/api/scores/:id", (req, res) => {
+  const { id } = req.params;
+  const database = getDatabase();
+  const index = database.findIndex((rec: any) => rec.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ error: "ไม่พบข้อมูลประวัติพนักงานที่ต้องการลบ" });
+  }
+
+  database.splice(index, 1);
+  saveDatabase(database);
+
+  res.json({ message: "ลบประวัติพนักงานสำเร็จ", id });
+});
+
 // Get department stats
 app.get("/api/departments", (req, res) => {
   const database = getDatabase();
